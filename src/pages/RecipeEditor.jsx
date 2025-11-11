@@ -1,164 +1,285 @@
-import { useEffect, useMemo, useState } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
-import { auth, db, storage } from '../firebase/firebase';
-import { doc, getDoc, serverTimestamp, setDoc } from 'firebase/firestore';
+import { useContext, useEffect, useMemo, useState } from 'react';
+import { useNavigate, useParams } from 'react-router-dom';
+import { UserContext } from '../context/UserContextProvider';
+
+import { db, storage } from '../firebase/firebase';
+import { doc, getDoc, setDoc, serverTimestamp } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
-import { Box, Grid, Card, CardContent, TextField, Button, Typography, Table, TableHead, TableRow, TableCell, TableBody, IconButton } from '@mui/material';
+
+import {
+  Box, Grid, Card, CardContent, TextField, Button, Typography,
+  Table, TableHead, TableRow, TableCell, TableBody, IconButton,
+  CircularProgress, Alert
+} from '@mui/material';
 import DeleteIcon from '@mui/icons-material/Delete';
-import { generateRecipePdf } from '../utils/generateReceipePdf';
 
-export default function RecipeEditor(){
-const { id } = useParams();
-const nav = useNavigate();
-const [title, setTitle] = useState('');
-const [totalVolume, setTotalVolume] = useState(500);
-const [coverUrl, setCoverUrl] = useState('');
-const [status, setStatus] = useState('draft');
-const [tags, setTags] = useState('');
-const [ingredients, setIngredients] = useState([]);
-
-useEffect(()=>{
-if (id && id !== 'new'){
-(async()=>{
-const snap = await getDoc(doc(db,'recipes',id));
-if (snap.exists()){
-const r = snap.data();
-setTitle(r.title || '');
-setTotalVolume(r.totalVolume_ml || 500);
-setCoverUrl(r.coverUrl || '');
-setStatus(r.status || 'draft');
-setTags((r.tags || []).join(','));
-setIngredients(r.ingredients || []);
-} else { nav('/'); }
-})();
-} else if (id === 'new'){
-setIngredients([
-{ id: crypto.randomUUID(), materialName: 'Ethanol', parts: 45 },
-{ id: crypto.randomUUID(), materialName: 'Calone (10%)', parts: 12 }
-]);
+function uuid() {
+  return (crypto?.randomUUID?.() || Math.random().toString(36).slice(2) + Date.now().toString(36));
 }
-},[id, nav]);
 
-const totalParts = useMemo(()=> ingredients.reduce((s,i)=> s + (Number(i.parts)||0), 0), [ingredients]);
-const rows = useMemo(()=> ingredients.map(i=>{
-const pct = totalParts ? (i.parts / totalParts) * 100 : 0;
-const ml = (totalVolume * pct) / 100;
-return { ...i, percentage: pct, amount_ml: ml };
-}), [ingredients, totalParts, totalVolume]);
+export default function RecipeEditor() {
+  const { id } = useParams();            // /r/:id
+  const nav = useNavigate();
+  const { user, loading: loadingUser } = useContext(UserContext);
 
-const save = async ()=>{
-const rid = id === 'new' ? crypto.randomUUID() : id;
-await setDoc(doc(db,'recipes', rid), {
-title,
-totalVolume_ml: totalVolume,
-coverUrl,
-status,
-tags: tags.split(',').map(s=>s.trim()).filter(Boolean),
-ingredients,
-createdBy: auth.currentUser?.uid,
-updatedAt: serverTimestamp(),
-createdAt: id === 'new' ? serverTimestamp() : undefined
-}, { merge: true });
-if (id === 'new') nav(`/r/${rid}`, { replace: true });
-};
+  const [loading, setLoading]   = useState(true);
+  const [error, setError]       = useState('');
 
-const onUpload = async (file)=>{
-const r = ref(storage, `recipes/${auth.currentUser?.uid}/${id || 'temp'}/${file.name}`);
-await uploadBytes(r, file);
-const url = await getDownloadURL(r);
-setCoverUrl(url);
-};
+  const [title, setTitle]             = useState('');
+  const [totalVolume, setTotalVolume] = useState(500);
+  const [status, setStatus]           = useState('draft');
+  const [tags, setTags]               = useState('');
+  const [coverUrl, setCoverUrl]       = useState('');
+  const [ingredients, setIngredients] = useState([]);
 
-const exportPdf = async ()=>{
-await generateRecipePdf({
-title,
-totalVolume_ml: totalVolume,
-status,
-tags: tags.split(',').map(s=>s.trim()).filter(Boolean),
-coverUrl,
-rows: rows.map(r=>({ materialName:r.materialName, parts:Number(r.parts)||0, percentage:Number(r.percentage)||0, amount_ml:Number(r.amount_ml)||0 })),
-footer: { userEmail: auth.currentUser?.email || '', updatedAtText: new Date().toLocaleString() }
-});
-};
+  // -------- load the recipe --------
+  useEffect(() => {
+    (async () => {
+      try {
+        setError('');
+        if (!id) throw new Error('Missing recipe id.');
+        const snap = await getDoc(doc(db, 'recipes', id));
+        if (!snap.exists()) {
+          setError('Recipe not found.');
+          setLoading(false);
+          return;
+        }
+        const r = snap.data();
+        setTitle(r.title || '');
+        setTotalVolume(r.totalVolume_ml || 500);
+        setStatus(r.status || 'draft');
+        setTags((r.tags || []).join(','));
+        setCoverUrl(r.coverUrl || '');
+        setIngredients(r.ingredients || []);
+      } catch (e) {
+        setError(e.message || String(e));
+      } finally {
+        setLoading(false);
+      }
+    })();
+  }, [id]);
 
-return (
-<Box p={3}>
-<Grid container spacing={3}>
-<Grid item xs={12} md={8}>
-<Card>
-<CardContent>
-<TextField fullWidth label="Title" value={title} onChange={e=>setTitle(e.target.value)} sx={{ mb:2 }} />
-<Grid container spacing={2}>
-<Grid item xs={6}>
-<TextField fullWidth type="number" label="Total volume (ml)" value={totalVolume} onChange={e=>setTotalVolume(Number(e.target.value)||0)} />
-</Grid>
-<Grid item xs={6}>
-<Button component="label" fullWidth>{coverUrl ? 'Change cover' : 'Upload cover'}
-<input hidden type="file" accept="image/*" onChange={e=> e.target.files && onUpload(e.target.files[0]) } />
-</Button>
-</Grid>
-</Grid>
-<Grid container spacing={2} sx={{ mt:1 }}>
-<Grid item xs={6}>
-<TextField fullWidth label="Status" value={status} onChange={e=>setStatus(e.target.value)} />
-</Grid>
-<Grid item xs={6}>
-<TextField fullWidth label="Tags (comma)" value={tags} onChange={e=>setTags(e.target.value)} />
-</Grid>
-</Grid>
-{coverUrl ? (<img alt="cover" src={coverUrl} style={{ width:'100%', height:220, objectFit:'cover', borderRadius:12, marginTop:12 }} />) : null}
+  // -------- derived rows for % and ml --------
+  const totalParts = useMemo(
+    () => ingredients.reduce((s, i) => s + (Number(i.parts) || 0), 0),
+    [ingredients]
+  );
 
-<Table size="small" sx={{ mt:2 }}>
-<TableHead>
-<TableRow>
-<TableCell>#</TableCell>
-<TableCell>Material</TableCell>
-<TableCell width={120}>Parts</TableCell>
-<TableCell width={120}>%</TableCell>
-<TableCell width={160}>Amount (ml)</TableCell>
-<TableCell width={64}></TableCell>
-</TableRow>
-</TableHead>
-<TableBody>
-{rows.map((r, idx)=> (
-<TableRow key={r.id}>
-<TableCell>{idx+1}</TableCell>
-<TableCell>
-<TextField fullWidth value={r.materialName} onChange={e=>setIngredients(prev=>{ const c=[...prev]; c[idx]={...c[idx], materialName:e.target.value}; return c; })} />
-</TableCell>
-<TableCell>
-<TextField type="number" fullWidth value={r.parts} onChange={e=>setIngredients(prev=>{ const c=[...prev]; c[idx]={...c[idx], parts:Number(e.target.value)||0}; return c; })} />
-</TableCell>
-<TableCell>{r.percentage.toFixed(2)}</TableCell>
-<TableCell>{r.amount_ml.toFixed(2)}</TableCell>
-<TableCell align="right">
-<IconButton onClick={()=>setIngredients(prev=> prev.filter(x=>x.id!==r.id))}><DeleteIcon /></IconButton>
-</TableCell>
-</TableRow>
-))}
-</TableBody>
-</Table>
+  const rows = useMemo(() => (
+    ingredients.map((i) => {
+      const pct = totalParts ? (i.parts / totalParts) * 100 : 0;
+      const ml  = (totalVolume * pct) / 100;
+      return { ...i, percentage: pct, amount_ml: ml };
+    })
+  ), [ingredients, totalParts, totalVolume]);
 
-<Box mt={2} display="flex" gap={1}>
-<Button onClick={()=>setIngredients(prev=>[...prev,{ id: crypto.randomUUID(), materialName:'', parts:0 }])}>Add ingredient</Button>
-<Button color="primary" onClick={save}>Save</Button>
-<Button variant="outlined" onClick={exportPdf}>Printable PDF</Button>
-</Box>
-</CardContent>
-</Card>
-</Grid>
+  // -------- actions --------
+  const addRow = () =>
+    setIngredients((prev) => [...prev, { id: uuid(), materialName: '', parts: 0 }]);
 
-<Grid item xs={12} md={4}>
-<Card>
-<CardContent>
-<Typography variant="subtitle2" color="text.secondary">Totals</Typography>
-<Typography mt={1}>Total parts: <b>{totalParts}</b></Typography>
-<Typography>Sum %: <b>{totalParts ? 100 : 0}</b></Typography>
-<Typography>Rows: <b>{ingredients.length}</b></Typography>
-</CardContent>
-</Card>
-</Grid>
-</Grid>
-</Box>
-);
+  const removeRow = (rowId) =>
+    setIngredients((prev) => prev.filter((x) => x.id !== rowId));
+
+  const onUpload = async (file) => {
+    try {
+      if (!user) throw new Error('Please sign in.');
+      const r = ref(storage, `recipes/${user.uid}/${id}/${file.name}`);
+      await uploadBytes(r, file);
+      const url = await getDownloadURL(r);
+      setCoverUrl(url);
+    } catch (e) {
+      setError(e.message || String(e));
+    }
+  };
+
+  const save = async () => {
+    try {
+      if (!user) throw new Error('Please sign in.');
+      await setDoc(
+        doc(db, 'recipes', id),
+        {
+          title: title.trim() || 'Untitled',
+          totalVolume_ml: Number(totalVolume) || 0,
+          status,
+          tags: tags.split(',').map((s) => s.trim()).filter(Boolean),
+          coverUrl: coverUrl || '',
+          ingredients: ingredients.map((x) => ({
+            id: x.id,
+            materialName: x.materialName || '',
+            parts: Number(x.parts) || 0,
+          })),
+          updatedAt: serverTimestamp()
+        },
+        { merge: true }
+      );
+      nav(-1); // back to list
+    } catch (e) {
+      setError(e.message || String(e));
+    }
+  };
+
+  if (loadingUser || loading) {
+    return (
+      <Box p={3} minHeight="60dvh" display="grid" alignItems="center" justifyContent="center">
+        <CircularProgress />
+      </Box>
+    );
+  }
+
+  if (error) {
+    return (
+      <Box p={3}>
+        <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>
+        <Button variant="outlined" onClick={() => nav('/')}>Back</Button>
+      </Box>
+    );
+  }
+
+  return (
+    <Box p={3}>
+      <Grid container spacing={3}>
+        <Grid item xs={12} md={8}>
+          <Card>
+            <CardContent>
+              <Typography variant="h5" mb={2}>Edit recipe</Typography>
+
+              <TextField
+                fullWidth
+                label="Title"
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
+                sx={{ mb: 2 }}
+              />
+
+              <Grid container spacing={2}>
+                <Grid item xs={6}>
+                  <TextField
+                    fullWidth
+                    type="number"
+                    label="Total volume (ml)"
+                    value={totalVolume}
+                    onChange={(e) => setTotalVolume(Number(e.target.value) || 0)}
+                  />
+                </Grid>
+                <Grid item xs={6}>
+                  <TextField
+                    fullWidth
+                    label="Status"
+                    value={status}
+                    onChange={(e) => setStatus(e.target.value)}
+                    placeholder="draft | final"
+                  />
+                </Grid>
+
+                <Grid item xs={12}>
+                  <TextField
+                    fullWidth
+                    label="Tags (comma)"
+                    value={tags}
+                    onChange={(e) => setTags(e.target.value)}
+                    placeholder="marine,fresh"
+                  />
+                </Grid>
+
+                <Grid item xs={12}>
+                  <Button component="label" fullWidth>
+                    {coverUrl ? 'Change cover' : 'Upload cover'}
+                    <input
+                      hidden
+                      type="file"
+                      accept="image/*"
+                      onChange={(e) => e.target.files && onUpload(e.target.files[0])}
+                    />
+                  </Button>
+                </Grid>
+
+                {coverUrl ? (
+                  <Grid item xs={12}>
+                    <img
+                      alt="cover"
+                      src={coverUrl}
+                      style={{ width: '100%', height: 220, objectFit: 'cover', borderRadius: 12 }}
+                    />
+                  </Grid>
+                ) : null}
+              </Grid>
+
+              <Table size="small" sx={{ mt: 2 }}>
+                <TableHead>
+                  <TableRow>
+                    <TableCell>#</TableCell>
+                    <TableCell>Material</TableCell>
+                    <TableCell width={120}>Parts</TableCell>
+                    <TableCell width={120}>%</TableCell>
+                    <TableCell width={160}>Amount (ml)</TableCell>
+                    <TableCell width={64}></TableCell>
+                  </TableRow>
+                </TableHead>
+                <TableBody>
+                  {rows.map((r, idx) => (
+                    <TableRow key={r.id}>
+                      <TableCell>{idx + 1}</TableCell>
+                      <TableCell>
+                        <TextField
+                          fullWidth
+                          value={r.materialName}
+                          onChange={(e) =>
+                            setIngredients((prev) => {
+                              const c = [...prev];
+                              c[idx] = { ...c[idx], materialName: e.target.value };
+                              return c;
+                            })
+                          }
+                        />
+                      </TableCell>
+                      <TableCell>
+                        <TextField
+                          type="number"
+                          fullWidth
+                          value={r.parts}
+                          onChange={(e) =>
+                            setIngredients((prev) => {
+                              const c = [...prev];
+                              c[idx] = { ...c[idx], parts: Number(e.target.value) || 0 };
+                              return c;
+                            })
+                          }
+                        />
+                      </TableCell>
+                      <TableCell>{r.percentage.toFixed(2)}</TableCell>
+                      <TableCell>{r.amount_ml.toFixed(2)}</TableCell>
+                      <TableCell align="right">
+                        <IconButton onClick={() => removeRow(r.id)}>
+                          <DeleteIcon />
+                        </IconButton>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+
+              <Box mt={2} display="flex" gap={1}>
+                <Button onClick={addRow}>Add ingredient</Button>
+                <Button color="primary" onClick={save}>Save</Button>
+                <Button variant="outlined" onClick={() => nav(-1)}>Cancel</Button>
+              </Box>
+            </CardContent>
+          </Card>
+        </Grid>
+
+        <Grid item xs={12} md={4}>
+          <Card>
+            <CardContent>
+              <Typography variant="subtitle2" color="text.secondary">
+                Totals
+              </Typography>
+              <Typography mt={1}>Total parts: <b>{totalParts}</b></Typography>
+              <Typography>Sum %: <b>{totalParts ? 100 : 0}</b></Typography>
+              <Typography>Rows: <b>{ingredients.length}</b></Typography>
+            </CardContent>
+          </Card>
+        </Grid>
+      </Grid>
+    </Box>
+  );
 }

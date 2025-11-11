@@ -4,6 +4,8 @@ import { auth } from '../firebase/firebase';
 import { createUserWithEmailAndPassword, updateProfile } from 'firebase/auth';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { storage } from '../firebase/firebase';
+import { db } from '../firebase/firebase';
+import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
 import { Box, Card, CardContent, TextField, Button, Typography, Avatar, CircularProgress } from '@mui/material';
 import CloudUploadIcon from '@mui/icons-material/CloudUpload';
 
@@ -38,9 +40,22 @@ export default function SignUp(){
 
       let photoURL = '';
       if (profileImage) {
-        const storageRef = ref(storage, `profilePictures/${user.uid}`);
-        await uploadBytes(storageRef, profileImage);
-        photoURL = await getDownloadURL(storageRef);
+        try {
+          const fileName = `${user.uid}_${Date.now()}.${profileImage.name.split('.').pop()}`;
+          const storageRef = ref(storage, `profilePictures/${user.uid}/${fileName}`);
+          
+          console.log('Uploading image to:', storageRef.fullPath);
+          const snapshot = await uploadBytes(storageRef, profileImage);
+          console.log('Upload successful:', snapshot);
+          
+          photoURL = await getDownloadURL(storageRef);
+          console.log('Photo URL:', photoURL);
+        } catch (uploadErr) {
+          console.error('Storage upload error:', uploadErr);
+          setError(`Image upload failed: ${uploadErr.message}`);
+          setLoading(false);
+          return;
+        }
       }
 
       await updateProfile(user, {
@@ -48,8 +63,28 @@ export default function SignUp(){
         photoURL: photoURL
       });
 
+      // Save user data to Firestore
+      try {
+        const userDocRef = doc(db, 'users', user.uid);
+        await setDoc(userDocRef, {
+          email: email,
+          displayName: displayName,
+          photoURL: photoURL,
+          createdAt: serverTimestamp(),
+          recipeNumber: 0
+        });
+        console.log('User document created in Firestore');
+      } catch (firestoreErr) {
+        console.error('Firestore error:', firestoreErr);
+        setError(`Failed to save user profile: ${firestoreErr.message}`);
+        setLoading(false);
+        return;
+      }
+
+      console.log('Profile updated successfully');
       navigate('/');
     } catch (err) {
+      console.error('SignUp error:', err);
       setError(err.message);
     } finally {
       setLoading(false);

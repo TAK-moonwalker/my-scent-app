@@ -5,29 +5,21 @@
     "rules": "firestore.rules",
     "indexes": "firestore.indexes.json"
   },
-  "hosting": {
+ "hosting": {
     "public": "dist",
-    "ignore": [
-      "firebase.json",
-      "**/.*",
-      "**/node_modules/**"
-    ],
+    "ignore": ["firebase.json", "**/.*", "**/node_modules/**"],
     "rewrites": [
       {
         "source": "**",
         "destination": "/index.html"
       }
     ]
+
   },
   "storage": {
     "rules": "storage.rules"
   },
   "emulators": {
-    "apphosting": {
-      "port": 5002,
-      "rootDirectory": "./",
-      "startCommand": "npm run dev"
-    },
     "auth": {
       "port": 9099
     },
@@ -36,6 +28,12 @@
     },
     "storage": {
       "port": 9199
+    },
+    "hosting": {
+      "port": 5000
+    },
+    "hub": {
+      "port": 4400
     },
     "ui": {
       "enabled": true
