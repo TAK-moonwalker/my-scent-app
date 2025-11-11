@@ -57,5 +57,3 @@ export function UserProvider({ children }) {
     </UserContext.Provider>
   );
 }
-
-

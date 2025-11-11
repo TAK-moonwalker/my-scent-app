@@ -1,19 +1,29 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{db}/documents {
-    function isAuthed() { return request.auth != null; }
-    
-    // Users collection - users can only read/write their own document
-    match /users/{uid} {
-      allow create: if isAuthed() && request.auth.uid == uid;
-      allow read, update: if isAuthed() && request.auth.uid == uid;
-      allow delete: if false; // Prevent user deletion
+
+    function authed() { return request.auth != null; }
+    function uid()    { return request.auth.uid; }
+
+    // Users: self-only
+    match /users/{userId} {
+      allow create: if authed() && userId == uid();
+      allow read, update: if authed() && userId == uid();
+      allow delete: if false;
     }
-    
-    // Recipes collection
-    match /recipes/{id} {
-      allow create: if isAuthed() && request.resource.data.createdBy == request.auth.uid;
-      allow read, update, delete: if isAuthed() && resource.data.createdBy == request.auth.uid;
+
+    // Recipes: owner-only
+    match /recipes/{recipeId} {
+      // On create, payload MUST include createdBy == uid()
+      allow create: if authed() && request.resource.data.createdBy == uid();
+      // For existing docs, owner is read from the stored doc
+      allow read, update, delete: if authed() && resource.data.createdBy == uid();
+    }
+
+    // If you later use a subcollection for ingredients, keep this:
+    match /recipes/{recipeId}/ingredients/{ingId} {
+      allow read, write: if authed()
+        && get(/databases/$(db)/documents/recipes/$(recipeId)).data.createdBy == uid();
     }
   }
 }
