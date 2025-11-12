@@ -5,13 +5,34 @@ service firebase.storage {
     function authed() { return request.auth != null; }
     function uid()    { return request.auth.uid; }
 
+    // PROFILE PICTURES
+    match /profilePictures/{userId}/{fileName} {
+      // Public read optional — keep authed() if you want privacy
+      allow read: if authed();
+
+      allow write: if authed()
+                   && userId == uid()
+                   && request.resource.size < 5 * 1024 * 1024
+                   && (
+                        // OK if client provides image contentType
+                        (request.resource.contentType is string
+                         && request.resource.contentType.matches('image/.*'))
+                        ||
+                        // OR allow if no contentType (some clients omit it)
+                        !(request.resource.contentType is string)
+                      );
+    }
+
+    // RECIPES (as before)
     match /recipes/{userId}/{recipeId}/{fileName} {
-      allow read: if true; // public read
+      allow read: if true; // or authed() if you want private covers
       allow write: if authed() && userId == uid()
                    && request.resource.size < 20 * 1024 * 1024
                    && (
-                        request.resource.contentType.matches('image/.*') ||
-                        request.resource.contentType == 'application/pdf'
+                        (request.resource.contentType is string
+                         && (request.resource.contentType.matches('image/.*')
+                             || request.resource.contentType == 'application/pdf'))
+                        || !(request.resource.contentType is string)
                       );
     }
   }

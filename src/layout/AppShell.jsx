@@ -1,11 +1,13 @@
 import { Outlet, useNavigate, Link as RouterLink } from 'react-router-dom';
 import { useUser } from '../context/useUser';
+import { useLogout } from '../context/useLogout';
 import {
   AppBar, Toolbar, IconButton, Typography, Avatar,
   Box, Stack, Container, Tooltip, Divider
 } from '@mui/material';
 import HomeIcon from '@mui/icons-material/Home';
 import AddIcon from '@mui/icons-material/Add';
+import LogoutIcon from '@mui/icons-material/Logout';
 
 function initials(name = '') {
   const p = String(name).trim().split(/\s+/);
@@ -14,6 +16,7 @@ function initials(name = '') {
 
 export default function AppShell() {
   const nav = useNavigate();
+  const logout = useLogout();
   const { isAuthenticated, user, userProfile } = useUser();
   const displayName = userProfile?.displayName || user?.email || 'User';
 
@@ -84,6 +87,11 @@ export default function AppShell() {
               <IconButton color="inherit" onClick={() => nav('/add')}>
                 <AddIcon />
               </IconButton>
+              <Tooltip title="Logout">
+                <IconButton color="inherit" onClick={logout}>
+                  <LogoutIcon />
+                </IconButton>
+              </Tooltip>
             </Stack>
           )}
         </Toolbar>

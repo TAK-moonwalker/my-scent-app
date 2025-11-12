@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { UserContext } from '../context/UserContextProvider';
 import { db } from '../firebase/firebase';
 import { doc, getDoc } from 'firebase/firestore';
+import ReactMarkdown from 'react-markdown';
 import {
   Box,
   Grid,
@@ -18,7 +19,8 @@ import {
   TableCell,
   TableBody,
   Alert,
-  Stack
+  Stack,
+  TextField
 } from '@mui/material';
 import EditIcon from '@mui/icons-material/Edit';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
@@ -31,6 +33,7 @@ export default function RecipeView() {
   const [recipe, setRecipe] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [customVolume, setCustomVolume] = useState(null);
 
   useEffect(() => {
     const loadRecipe = async () => {
@@ -138,13 +141,43 @@ export default function RecipeView() {
                 Created: {createdAt}
               </Typography>
 
-              <Typography variant="body1" sx={{ mb: 2 }}>
-                <b>Total Volume:</b> {recipe.totalVolume_ml} ml
-              </Typography>
+              <Box sx={{ mb: 2, p: 2, bgcolor: 'background.default', borderRadius: 1 }}>
+                <Typography variant="subtitle2" sx={{ mb: 1.5, fontWeight: 600 }}>
+                  Calculate Recipe Amount
+                </Typography>
+                <TextField
+                  type="number"
+                  label="Total Volume (ml)"
+                  value={customVolume ?? recipe.totalVolume_ml}
+                  onChange={(e) => setCustomVolume(Number(e.target.value) || null)}
+                  fullWidth
+                  inputProps={{ step: '0.1', min: '0' }}
+                  helperText={`Original recipe: ${recipe.totalVolume_ml} ml`}
+                />
+              </Box>
 
               <Typography variant="body1" sx={{ mb: 2 }}>
                 <b>Status:</b> {recipe.status}
               </Typography>
+
+              {recipe.note && (
+                <Box sx={{ mb: 3, p: 2, bgcolor: 'background.default', borderRadius: 1 }}>
+                  <Typography variant="subtitle1" sx={{ mb: 1, fontWeight: 600 }}>
+                    Notes
+                  </Typography>
+                  <Box sx={{ 
+                    '& h1': { variant: 'h5', mt: 2, mb: 1 },
+                    '& h2': { variant: 'h6', mt: 1.5, mb: 0.5 },
+                    '& p': { mb: 1 },
+                    '& ul, & ol': { pl: 2, mb: 1 },
+                    '& code': { bgcolor: 'action.hover', px: 0.5, borderRadius: 0.5, fontFamily: 'monospace' },
+                    '& pre': { bgcolor: 'action.hover', p: 1, borderRadius: 1, overflow: 'auto' },
+                    '& blockquote': { borderLeft: '4px solid', borderColor: 'primary.main', pl: 2, ml: 0, fontStyle: 'italic' }
+                  }}>
+                    <ReactMarkdown>{recipe.note}</ReactMarkdown>
+                  </Box>
+                </Box>
+              )}
 
               <Typography variant="subtitle1" sx={{ mt: 3, mb: 1 }}>
                 Ingredients
@@ -154,9 +187,8 @@ export default function RecipeView() {
                   <TableRow>
                     <TableCell>#</TableCell>
                     <TableCell>Material</TableCell>
-                    <TableCell>Parts</TableCell>
-                    <TableCell>%</TableCell>
-                    <TableCell>Amount (ml)</TableCell>
+                    <TableCell align="right">%</TableCell>
+                    <TableCell align="right">Amount (ml)</TableCell>
                   </TableRow>
                 </TableHead>
                 <TableBody>
@@ -164,15 +196,14 @@ export default function RecipeView() {
                     const pct = totalParts
                       ? (i.parts / totalParts) * 100
                       : 0;
-                    const ml =
-                      (recipe.totalVolume_ml * pct) / 100 || 0;
+                    const displayVolume = customVolume ?? recipe.totalVolume_ml;
+                    const ml = (displayVolume * pct) / 100 || 0;
                     return (
                       <TableRow key={i.id || idx}>
                         <TableCell>{idx + 1}</TableCell>
                         <TableCell>{i.materialName}</TableCell>
-                        <TableCell>{i.parts}</TableCell>
-                        <TableCell>{pct.toFixed(2)}</TableCell>
-                        <TableCell>{ml.toFixed(2)}</TableCell>
+                        <TableCell align="right">{pct.toFixed(2)}</TableCell>
+                        <TableCell align="right">{ml.toFixed(2)}</TableCell>
                       </TableRow>
                     );
                   })}
@@ -210,13 +241,13 @@ export default function RecipeView() {
                 Summary
               </Typography>
               <Typography mt={1}>
-                Total parts: <b>{totalParts}</b>
+                Total Volume: <b>{customVolume ?? recipe.totalVolume_ml} ml</b>
               </Typography>
               <Typography>
                 Ingredients: <b>{ingredients.length}</b>
               </Typography>
               <Typography>
-                Owner: <b>{recipe.createdBy}</b>
+                Owner: <b>{recipe.createdByName}</b>
               </Typography>
             </CardContent>
           </Card>

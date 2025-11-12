@@ -29,7 +29,7 @@ export default function RecipeList() {
   const [toDelete, setToDelete] = useState(null); // { id, title } or null
   const [deleting, setDeleting] = useState(false);
 
-  const handleCreate = () => nav('/r/new');
+  const handleCreate = () => nav('/add');
   const handleOpen = (id) => nav(`/r/${id}/view`);
   const handleEdit = (id) => nav(`/r/${id}/edit`);
 

@@ -26,6 +26,7 @@ export default function AddRecipe() {
   const [totalVolume, setTotalVolume] = useState(500);
   const [status, setStatus] = useState('draft');
   const [tags, setTags] = useState('');
+  const [note, setNote] = useState('');
   const [coverUrl, setCoverUrl] = useState('');
   const [error, setError] = useState('');
 
@@ -75,6 +76,7 @@ export default function AddRecipe() {
         totalVolume_ml: Number(totalVolume) || 0,
         status,
         tags: tags.split(',').map((s) => s.trim()).filter(Boolean),
+        note: note.trim() || '',
         coverUrl: coverUrl || '',
         ingredients: ingredients.map((x) => ({
           id: x.id,
@@ -82,6 +84,7 @@ export default function AddRecipe() {
           parts: Number(x.parts) || 0,
         })),
         createdBy: user.uid,
+        createdByName: user.displayName || '',
         createdAt: serverTimestamp(),
         updatedAt: serverTimestamp(),
       };
@@ -148,6 +151,18 @@ export default function AddRecipe() {
                     value={tags}
                     onChange={(e) => setTags(e.target.value)}
                     placeholder="marine,fresh"
+                  />
+                </Grid>
+                <Grid item xs={12}>
+                  <TextField
+                    fullWidth
+                    multiline
+                    rows={4}
+                    label="Notes (Markdown supported)"
+                    value={note}
+                    onChange={(e) => setNote(e.target.value)}
+                    placeholder="Write notes in Markdown format. **bold**, *italic*, `code`, # Heading, etc."
+                    helperText="You can use Markdown syntax for formatting"
                   />
                 </Grid>
                 <Grid item xs={12}>
