@@ -182,13 +182,14 @@ export default function RecipeView() {
               <Typography variant="subtitle1" sx={{ mt: 3, mb: 1 }}>
                 Ingredients
               </Typography>
-              <Table size="small">
+              <Box sx={{ overflowX: 'auto' }}>
+              <Table size="small" sx={{ minWidth: { xs: 500, sm: 'auto' } }}>
                 <TableHead>
                   <TableRow>
-                    <TableCell>#</TableCell>
-                    <TableCell>Material</TableCell>
-                    <TableCell align="right">%</TableCell>
-                    <TableCell align="right">Amount (ml)</TableCell>
+                    <TableCell sx={{ width: { xs: 32, sm: 'auto' } }}>#</TableCell>
+                    <TableCell sx={{ width: { xs: 150, sm: 'auto' }, minWidth: 120 }}>Material</TableCell>
+                    <TableCell align="right" sx={{ width: { xs: 70, sm: 'auto' } }}>%</TableCell>
+                    <TableCell align="right" sx={{ width: { xs: 100, sm: 'auto' } }}>Amount (ml)</TableCell>
                   </TableRow>
                 </TableHead>
                 <TableBody>
@@ -209,6 +210,7 @@ export default function RecipeView() {
                   })}
                 </TableBody>
               </Table>
+              </Box>
             </CardContent>
           </Card>
 

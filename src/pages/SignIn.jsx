@@ -25,8 +25,8 @@ const handleSignIn = async () => {
 };
 
 return (
-<Box minHeight="100dvh" display="grid" alignItems="center" justifyContent="center" p={2}>
-<Card sx={{ width: 420, maxWidth: '100%' }}>
+<Box minHeight="100dvh" display="grid" alignItems="center" justifyContent="center" p={2} sx={{ boxSizing: 'border-box' }}>
+<Card sx={{ width: { xs: '100%', sm: 420 }, maxWidth: '100%' }}>
 <CardContent>
 <Typography variant="h6" mb={2}>Log in</Typography>
 <TextField fullWidth label="Email" value={email} onChange={e=>setEmail(e.target.value)} sx={{ mb:2 }} />

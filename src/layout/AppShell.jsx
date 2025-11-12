@@ -21,7 +21,7 @@ export default function AppShell() {
   const displayName = userProfile?.displayName || user?.email || 'User';
 
   return (
-    <Box sx={{ minHeight: '100dvh', display: 'flex', flexDirection: 'column' }}>
+    <Box sx={{ minHeight: '100dvh', display: 'flex', flexDirection: 'column', overflowX: 'hidden' }}>
       {/* ===== AppBar ===== */}
       <AppBar
         position="sticky"
@@ -31,9 +31,9 @@ export default function AppShell() {
           backgroundColor: '#000', // solid black header
         }}
       >
-        <Toolbar sx={{ gap: 1 }}>
+  <Toolbar sx={{ gap: 1, overflow: 'hidden' }}>
           {/* Left side: App icon + name + avatar (if logged in) */}
-          <Stack direction="row" alignItems="center" spacing={1} sx={{ flexGrow: 1 }}>
+          <Stack direction="row" alignItems="center" spacing={1} sx={{ flexGrow: 1, minWidth: 0 }}>
             <Stack
               direction="row"
               spacing={1}
@@ -55,7 +55,16 @@ export default function AppShell() {
               >
                 💧
               </Box>
-              <Typography variant="h6" sx={{ fontWeight: 700 }}>
+              <Typography
+                variant="h6"
+                sx={{
+                  fontWeight: 700,
+                  whiteSpace: 'nowrap',
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                  maxWidth: { xs: 120, sm: 200, md: 300 },
+                }}
+              >
                 My Scent App
               </Typography>
             </Stack>
@@ -115,6 +124,8 @@ export default function AppShell() {
           flexDirection: 'column',
           justifyContent: 'center',
           width: '100%',
+          boxSizing: 'border-box',
+          overflowX: 'hidden',
           px: { xs: 1, sm: 2, md: 3 },
         }}
       >

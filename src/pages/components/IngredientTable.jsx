@@ -1,20 +1,20 @@
-import { Table, TableHead, TableRow, TableCell, TableBody, TextField, IconButton } from '@mui/material';
+import { Table, TableHead, TableRow, TableCell, TableBody, TextField, IconButton, Box } from '@mui/material';
 import DeleteIcon from '@mui/icons-material/Delete';
 
 export default function IngredientTable({ rows, setIngredients }) {
   const removeRow = (id) => setIngredients((prev) => prev.filter((x) => x.id !== id));
 
   return (
-    <>
-    <Table size="small" sx={{ mt: 2 }}>
+    <Box sx={{ overflowX: 'auto', mt: 2 }}>
+    <Table size="small" sx={{ minWidth: { xs: 600, sm: 'auto' } }}>
       <TableHead>
         <TableRow>
-          <TableCell width={40}>#</TableCell>
-          <TableCell width={300}>Material</TableCell>
-          <TableCell width={126}>Parts</TableCell>
-          <TableCell width={100}>%</TableCell>
-          <TableCell width={120}>Amount (ml)</TableCell>
-          <TableCell width={64}></TableCell>
+          <TableCell sx={{ width: { xs: 32, sm: 40 } }}>#</TableCell>
+          <TableCell sx={{ width: { xs: 120, sm: 300 }, minWidth: 100 }}>Material</TableCell>
+          <TableCell sx={{ width: { xs: 80, sm: 126 }, minWidth: 70 }}>Parts</TableCell>
+          <TableCell sx={{ width: { xs: 60, sm: 100 }, minWidth: 55 }}>%</TableCell>
+          <TableCell sx={{ width: { xs: 90, sm: 120 }, minWidth: 80 }}>Amount (ml)</TableCell>
+          <TableCell sx={{ width: { xs: 48, sm: 64 }, minWidth: 48 }}></TableCell>
         </TableRow>
       </TableHead>
       <TableBody>
@@ -77,6 +77,6 @@ export default function IngredientTable({ rows, setIngredients }) {
         ))}
       </TableBody>
     </Table>
-    </>
+    </Box>
   );
 }

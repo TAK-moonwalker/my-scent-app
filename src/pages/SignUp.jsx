@@ -92,8 +92,8 @@ export default function SignUp(){
   };
 
   return (
-    <Box minHeight="100dvh" display="grid" alignItems="center" justifyContent="center" p={2}>
-      <Card sx={{ width: 420, maxWidth: '100%' }}>
+    <Box minHeight="100dvh" display="grid" alignItems="center" justifyContent="center" p={2} sx={{ boxSizing: 'border-box' }}>
+      <Card sx={{ width: { xs: '100%', sm: 420 }, maxWidth: '100%' }}>
         <CardContent>
           <Typography variant="h6" mb={3}>Create Account</Typography>
 
