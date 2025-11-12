@@ -14,6 +14,7 @@ import RecipeList from './pages/RecipeList';
 import AddRecipe from './pages/AddRecipe';
 import RecipeEditor from './pages/RecipeEditor';
 import RecipeView from './pages/RecipeView';
+import ProfileEdit from './pages/ProfileEdit';
 import AppShell from './layout/AppShell';
 
 // ---------- Protected Route ----------
@@ -85,6 +86,14 @@ function AppRoutes() {
       element={
         <ProtectedRoute>
           <RecipeEditor />
+        </ProtectedRoute>
+      }
+    />
+    <Route
+      path="/profile/edit"
+      element={
+        <ProtectedRoute>
+          <ProfileEdit />
         </ProtectedRoute>
       }
     />

@@ -29,6 +29,7 @@ export default function RecipeEditor() {
   const [totalVolume, setTotalVolume] = useState(500);
   const [status, setStatus]           = useState('draft');
   const [tags, setTags]               = useState('');
+  const [note, setNote]               = useState('');
   const [coverUrl, setCoverUrl]       = useState('');
   const [ingredients, setIngredients] = useState([]);
 
@@ -49,6 +50,7 @@ export default function RecipeEditor() {
         setTotalVolume(r.totalVolume_ml || 500);
         setStatus(r.status || 'draft');
         setTags((r.tags || []).join(','));
+        setNote(r.note || '');
         setCoverUrl(r.coverUrl || '');
         setIngredients(r.ingredients || []);
       } catch (e) {
@@ -102,6 +104,7 @@ export default function RecipeEditor() {
           totalVolume_ml: Number(totalVolume) || 0,
           status,
           tags: tags.split(',').map((s) => s.trim()).filter(Boolean),
+          note: note.trim() || '',
           coverUrl: coverUrl || '',
           ingredients: ingredients.map((x) => ({
             id: x.id,
@@ -182,6 +185,19 @@ export default function RecipeEditor() {
                 </Grid>
 
                 <Grid item xs={12}>
+                  <TextField
+                    fullWidth
+                    multiline
+                    rows={4}
+                    label="Notes (Markdown supported)"
+                    value={note}
+                    onChange={(e) => setNote(e.target.value)}
+                    placeholder="Write notes in Markdown format. **bold**, *italic*, `code`, # Heading, etc."
+                    helperText="You can use Markdown syntax for formatting"
+                  />
+                </Grid>
+
+                <Grid item xs={12}>
                   <Button component="label" fullWidth>
                     {coverUrl ? 'Change cover' : 'Upload cover'}
                     <input
@@ -207,11 +223,11 @@ export default function RecipeEditor() {
               <Table size="small" sx={{ mt: 2 }}>
                 <TableHead>
                   <TableRow>
-                    <TableCell>#</TableCell>
-                    <TableCell>Material</TableCell>
-                    <TableCell width={120}>Parts</TableCell>
-                    <TableCell width={120}>%</TableCell>
-                    <TableCell width={160}>Amount (ml)</TableCell>
+                    <TableCell width={40}>#</TableCell>
+                    <TableCell width={300}>Material</TableCell>
+                    <TableCell width={126}>Parts</TableCell>
+                    <TableCell width={100}>%</TableCell>
+                    <TableCell width={120}>Amount (ml)</TableCell>
                     <TableCell width={64}></TableCell>
                   </TableRow>
                 </TableHead>
@@ -222,6 +238,7 @@ export default function RecipeEditor() {
                       <TableCell>
                         <TextField
                           fullWidth
+                          size="small"
                           value={r.materialName}
                           onChange={(e) =>
                             setIngredients((prev) => {
@@ -236,6 +253,7 @@ export default function RecipeEditor() {
                         <TextField
                           type="number"
                           fullWidth
+                          size="small"
                           value={r.parts}
                           onChange={(e) =>
                             setIngredients((prev) => {
@@ -244,6 +262,22 @@ export default function RecipeEditor() {
                               return c;
                             })
                           }
+                          inputProps={{
+                            style: { MozAppearance: 'textfield', padding: '6px' }
+                          }}
+                          sx={{
+                            '& input[type=number]': {
+                              MozAppearance: 'textfield',
+                            },
+                            '& input[type=number]::-webkit-outer-spin-button': {
+                              WebkitAppearance: 'none',
+                              margin: 0,
+                            },
+                            '& input[type=number]::-webkit-inner-spin-button': {
+                              WebkitAppearance: 'none',
+                              margin: 0,
+                            },
+                          }}
                         />
                       </TableCell>
                       <TableCell>{r.percentage.toFixed(2)}</TableCell>

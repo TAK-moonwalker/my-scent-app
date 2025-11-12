@@ -9,11 +9,11 @@ export default function IngredientTable({ rows, setIngredients }) {
     <Table size="small" sx={{ mt: 2 }}>
       <TableHead>
         <TableRow>
-          <TableCell>#</TableCell>
-          <TableCell>Material</TableCell>
-          <TableCell width={120}>Parts</TableCell>
-          <TableCell width={120}>%</TableCell>
-          <TableCell width={160}>Amount (ml)</TableCell>
+          <TableCell width={40}>#</TableCell>
+          <TableCell width={300}>Material</TableCell>
+          <TableCell width={126}>Parts</TableCell>
+          <TableCell width={100}>%</TableCell>
+          <TableCell width={120}>Amount (ml)</TableCell>
           <TableCell width={64}></TableCell>
         </TableRow>
       </TableHead>
@@ -24,6 +24,7 @@ export default function IngredientTable({ rows, setIngredients }) {
             <TableCell>
               <TextField
                 fullWidth
+                size="small"
                 value={r.materialName}
                 onChange={(e) =>
                   setIngredients((prev) => {
@@ -38,6 +39,7 @@ export default function IngredientTable({ rows, setIngredients }) {
               <TextField
                 type="number"
                 fullWidth
+                size="small"
                 value={r.parts}
                 onChange={(e) =>
                   setIngredients((prev) => {
@@ -46,6 +48,22 @@ export default function IngredientTable({ rows, setIngredients }) {
                     return c;
                   })
                 }
+                inputProps={{
+                  style: { MozAppearance: 'textfield', padding: '6px' }
+                }}
+                sx={{
+                  '& input[type=number]': {
+                    MozAppearance: 'textfield',
+                  },
+                  '& input[type=number]::-webkit-outer-spin-button': {
+                    WebkitAppearance: 'none',
+                    margin: 0,
+                  },
+                  '& input[type=number]::-webkit-inner-spin-button': {
+                    WebkitAppearance: 'none',
+                    margin: 0,
+                  },
+                }}
               />
             </TableCell>
             <TableCell>{r.percentage.toFixed(2)}</TableCell>

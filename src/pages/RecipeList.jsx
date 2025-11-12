@@ -1,17 +1,17 @@
-import { useAuthState } from 'react-firebase-hooks/auth';
-import { auth, db } from '../firebase/firebase';
-import { collection, query, where, orderBy, doc, deleteDoc, getDocs } from 'firebase/firestore';
 import { useCollection } from 'react-firebase-hooks/firestore';
-import { Box, Grid, Fab, CircularProgress } from '@mui/material';
+import { collection, query, where, orderBy, doc, deleteDoc, getDocs } from 'firebase/firestore';
+import { db } from '../firebase/firebase';
+import { Box, Grid, Fab, CircularProgress, Alert } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
 import { useNavigate } from 'react-router-dom';
+import { useState, useCallback } from 'react';
+import { useUser } from '../context/useUser';
 import EmptyState from './components/EmptyState';
 import RecipeCard from './components/RecipeCard';
 import ConfirmDialog from './components/ConfirmDialog';
-import { useState, useCallback } from 'react';
 
 export default function RecipeList() {
-  const [user, loadingAuth] = useAuthState(auth);
+  const { user } = useUser();
   const nav = useNavigate();
 
   // Query only when user is available
@@ -57,7 +57,7 @@ export default function RecipeList() {
     }
   };
 
-  if (loadingAuth || loadingCol) {
+  if (loadingCol) {
     return (
       <Box p={3} display="grid" alignItems="center" justifyContent="center" minHeight="60dvh">
         <CircularProgress />
@@ -68,7 +68,9 @@ export default function RecipeList() {
   if (errorCol) {
     return (
       <Box p={3}>
-        Error loading recipes: {String(errorCol.message || errorCol)}
+        <Alert severity="error">
+          Error loading recipes: {String(errorCol.message || errorCol)}
+        </Alert>
       </Box>
     );
   }

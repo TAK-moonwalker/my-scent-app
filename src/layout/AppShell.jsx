@@ -63,12 +63,19 @@ export default function AppShell() {
             {isAuthenticated && (
               <Tooltip title={displayName}>
                 <Avatar
+                  onClick={() => nav('/profile/edit')}
                   sx={{
                     width: 30,
                     height: 30,
                     ml: 1,
                     bgcolor: 'success.main',
                     fontWeight: 700,
+                    cursor: 'pointer',
+                    transition: 'all 0.2s ease',
+                    '&:hover': {
+                      transform: 'scale(1.1)',
+                      boxShadow: '0 0 8px rgba(34, 197, 94, 0.5)',
+                    },
                   }}
                   src={userProfile?.photoURL || undefined}
                 >
@@ -107,6 +114,8 @@ export default function AppShell() {
           display: 'flex',
           flexDirection: 'column',
           justifyContent: 'center',
+          width: '100%',
+          px: { xs: 1, sm: 2, md: 3 },
         }}
       >
         <Outlet />
