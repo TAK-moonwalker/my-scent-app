@@ -9,7 +9,7 @@ import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import {
   Box, Grid, Card, CardContent, TextField, Button, Typography,
   Table, TableHead, TableRow, TableCell, TableBody, IconButton,
-  CircularProgress, Alert
+  CircularProgress, Alert, FormControlLabel, Checkbox
 } from '@mui/material';
 import DeleteIcon from '@mui/icons-material/Delete';
 
@@ -32,6 +32,7 @@ export default function RecipeEditor() {
   const [note, setNote]               = useState('');
   const [coverUrl, setCoverUrl]       = useState('');
   const [ingredients, setIngredients] = useState([]);
+  const [isPublic, setIsPublic]       = useState(false);
 
   // -------- load the recipe --------
   useEffect(() => {
@@ -52,6 +53,7 @@ export default function RecipeEditor() {
         setTags((r.tags || []).join(','));
         setNote(r.note || '');
         setCoverUrl(r.coverUrl || '');
+        setIsPublic(r.isPublic || false);
         setIngredients(r.ingredients || []);
       } catch (e) {
         setError(e.message || String(e));
@@ -62,22 +64,21 @@ export default function RecipeEditor() {
   }, [id]);
 
   // -------- derived rows for % and ml --------
-  const totalParts = useMemo(
-    () => ingredients.reduce((s, i) => s + (Number(i.parts) || 0), 0),
+  const totalPercentage = useMemo(
+    () => ingredients.reduce((s, i) => s + (Number(i.percentage) || 0), 0),
     [ingredients]
   );
 
   const rows = useMemo(() => (
     ingredients.map((i) => {
-      const pct = totalParts ? (i.parts / totalParts) * 100 : 0;
-      const ml  = (totalVolume * pct) / 100;
-      return { ...i, percentage: pct, amount_ml: ml };
+      const ml  = (totalVolume * (Number(i.percentage) || 0)) / 100;
+      return { ...i, percentage: Number(i.percentage) || 0, amount_ml: ml };
     })
-  ), [ingredients, totalParts, totalVolume]);
+  ), [ingredients, totalVolume]);
 
   // -------- actions --------
   const addRow = () =>
-    setIngredients((prev) => [...prev, { id: uuid(), materialName: '', parts: 0 }]);
+    setIngredients((prev) => [...prev, { id: uuid(), materialName: '', percentage: 0 }]);
 
   const removeRow = (rowId) =>
     setIngredients((prev) => prev.filter((x) => x.id !== rowId));
@@ -106,10 +107,11 @@ export default function RecipeEditor() {
           tags: tags.split(',').map((s) => s.trim()).filter(Boolean),
           note: note.trim() || '',
           coverUrl: coverUrl || '',
+          isPublic,
           ingredients: ingredients.map((x) => ({
             id: x.id,
             materialName: x.materialName || '',
-            parts: Number(x.parts) || 0,
+            percentage: Number(x.percentage) || 0,
           })),
           updatedAt: serverTimestamp()
         },
@@ -175,6 +177,18 @@ export default function RecipeEditor() {
                 </Grid>
 
                 <Grid item xs={12}>
+                  <FormControlLabel
+                    control={
+                      <Checkbox
+                        checked={isPublic}
+                        onChange={(e) => setIsPublic(e.target.checked)}
+                      />
+                    }
+                    label="Make recipe public"
+                  />
+                </Grid>
+
+                <Grid item xs={12}>
                   <TextField
                     fullWidth
                     label="Tags (comma)"
@@ -225,8 +239,7 @@ export default function RecipeEditor() {
                   <TableRow>
                     <TableCell width={40}>#</TableCell>
                     <TableCell width={300}>Material</TableCell>
-                    <TableCell width={126}>Parts</TableCell>
-                    <TableCell width={100}>%</TableCell>
+                    <TableCell width={120}>% (Percentage)</TableCell>
                     <TableCell width={120}>Amount (ml)</TableCell>
                     <TableCell width={64}></TableCell>
                   </TableRow>
@@ -254,15 +267,18 @@ export default function RecipeEditor() {
                           type="number"
                           fullWidth
                           size="small"
-                          value={r.parts}
+                          value={r.percentage}
                           onChange={(e) =>
                             setIngredients((prev) => {
                               const c = [...prev];
-                              c[idx] = { ...c[idx], parts: Number(e.target.value) || 0 };
+                              c[idx] = { ...c[idx], percentage: Number(e.target.value) || 0 };
                               return c;
                             })
                           }
                           inputProps={{
+                            step: '0.1',
+                            min: '0',
+                            max: '100',
                             style: { MozAppearance: 'textfield', padding: '6px' }
                           }}
                           sx={{
@@ -280,7 +296,6 @@ export default function RecipeEditor() {
                           }}
                         />
                       </TableCell>
-                      <TableCell>{r.percentage.toFixed(2)}</TableCell>
                       <TableCell>{r.amount_ml.toFixed(2)}</TableCell>
                       <TableCell align="right">
                         <IconButton onClick={() => removeRow(r.id)}>
@@ -307,8 +322,8 @@ export default function RecipeEditor() {
               <Typography variant="subtitle2" color="text.secondary">
                 Totals
               </Typography>
-              <Typography mt={1}>Total parts: <b>{totalParts}</b></Typography>
-              <Typography>Sum %: <b>{totalParts ? 100 : 0}</b></Typography>
+              <Typography mt={1}>Total %: <b>{totalPercentage.toFixed(2)}</b></Typography>
+              <Typography>Target: <b>100%</b></Typography>
               <Typography>Rows: <b>{ingredients.length}</b></Typography>
             </CardContent>
           </Card>

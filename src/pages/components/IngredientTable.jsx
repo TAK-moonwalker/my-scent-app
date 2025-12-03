@@ -6,13 +6,12 @@ export default function IngredientTable({ rows, setIngredients }) {
 
   return (
     <Box sx={{ overflowX: 'auto', mt: 2 }}>
-    <Table size="small" sx={{ minWidth: { xs: 600, sm: 'auto' } }}>
+    <Table size="small" sx={{ minWidth: { xs: 500, sm: 'auto' } }}>
       <TableHead>
         <TableRow>
           <TableCell sx={{ width: { xs: 32, sm: 40 } }}>#</TableCell>
           <TableCell sx={{ width: { xs: 120, sm: 300 }, minWidth: 100 }}>Material</TableCell>
-          <TableCell sx={{ width: { xs: 80, sm: 126 }, minWidth: 70 }}>Parts</TableCell>
-          <TableCell sx={{ width: { xs: 60, sm: 100 }, minWidth: 55 }}>%</TableCell>
+          <TableCell sx={{ width: { xs: 80, sm: 120 }, minWidth: 70 }}>% (Percentage)</TableCell>
           <TableCell sx={{ width: { xs: 90, sm: 120 }, minWidth: 80 }}>Amount (ml)</TableCell>
           <TableCell sx={{ width: { xs: 48, sm: 64 }, minWidth: 48 }}></TableCell>
         </TableRow>
@@ -40,15 +39,18 @@ export default function IngredientTable({ rows, setIngredients }) {
                 type="number"
                 fullWidth
                 size="small"
-                value={r.parts}
+                value={r.percentage}
                 onChange={(e) =>
                   setIngredients((prev) => {
                     const c = [...prev];
-                    c[idx] = { ...c[idx], parts: Number(e.target.value) || 0 };
+                    c[idx] = { ...c[idx], percentage: Number(e.target.value) || 0 };
                     return c;
                   })
                 }
                 inputProps={{
+                  step: '0.1',
+                  min: '0',
+                  max: '100',
                   style: { MozAppearance: 'textfield', padding: '6px' }
                 }}
                 sx={{
@@ -66,7 +68,6 @@ export default function IngredientTable({ rows, setIngredients }) {
                 }}
               />
             </TableCell>
-            <TableCell>{r.percentage.toFixed(2)}</TableCell>
             <TableCell>{r.amount_ml.toFixed(2)}</TableCell>
             <TableCell align="right">
               <IconButton onClick={() => removeRow(r.id)}>

@@ -8,7 +8,8 @@ import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 
 import {
   Box, Grid, Card, CardContent, TextField, Button, Typography,
-  Table, TableHead, TableRow, TableCell, TableBody, IconButton, Alert
+  Table, TableHead, TableRow, TableCell, TableBody, IconButton, Alert,
+  FormControlLabel, Checkbox
 } from '@mui/material';
 import DeleteIcon from '@mui/icons-material/Delete';
 import IngredientTable from './components/IngredientTable';
@@ -29,24 +30,24 @@ export default function AddRecipe() {
   const [note, setNote] = useState('');
   const [coverUrl, setCoverUrl] = useState('');
   const [error, setError] = useState('');
+  const [isPublic, setIsPublic] = useState(false);
 
   const [ingredients, setIngredients] = useState([
-    { id: uuid(), materialName: 'Ethanol', parts: 45 },
-    { id: uuid(), materialName: 'Calone (10%)', parts: 12 },
+    { id: uuid(), materialName: 'Ethanol', percentage: 45 },
+    { id: uuid(), materialName: 'Calone (10%)', percentage: 12 },
   ]);
 
-  const totalParts = useMemo(
-    () => ingredients.reduce((s, i) => s + (Number(i.parts) || 0), 0),
+  const totalPercentage = useMemo(
+    () => ingredients.reduce((s, i) => s + (Number(i.percentage) || 0), 0),
     [ingredients]
   );
 
   const rows = useMemo(() => {
     return ingredients.map((i) => {
-      const pct = totalParts ? (i.parts / totalParts) * 100 : 0;
-      const ml = (totalVolume * pct) / 100;
-      return { ...i, percentage: pct, amount_ml: ml };
+      const ml = (totalVolume * (Number(i.percentage) || 0)) / 100;
+      return { ...i, percentage: Number(i.percentage) || 0, amount_ml: ml };
     });
-  }, [ingredients, totalParts, totalVolume]);
+  }, [ingredients, totalVolume]);
 
   const onUpload = async (file) => {
     try {
@@ -78,10 +79,11 @@ export default function AddRecipe() {
         tags: tags.split(',').map((s) => s.trim()).filter(Boolean),
         note: note.trim() || '',
         coverUrl: coverUrl || '',
+        isPublic,
         ingredients: ingredients.map((x) => ({
           id: x.id,
           materialName: x.materialName || '',
-          parts: Number(x.parts) || 0,
+          percentage: Number(x.percentage) || 0,
         })),
         createdBy: user.uid,
         createdByName: user.displayName || '',
@@ -145,6 +147,17 @@ export default function AddRecipe() {
                   />
                 </Grid>
                 <Grid item xs={12}>
+                  <FormControlLabel
+                    control={
+                      <Checkbox
+                        checked={isPublic}
+                        onChange={(e) => setIsPublic(e.target.checked)}
+                      />
+                    }
+                    label="Make recipe public"
+                  />
+                </Grid>
+                <Grid item xs={12}>
                   <TextField
                     fullWidth
                     label="Tags (comma)"
@@ -205,10 +218,10 @@ export default function AddRecipe() {
                 Totals
               </Typography>
               <Typography mt={1}>
-                Total parts: <b>{totalParts}</b>
+                Total %: <b>{totalPercentage.toFixed(2)}</b>
               </Typography>
               <Typography>
-                Sum %: <b>{totalParts ? 100 : 0}</b>
+                Target: <b>100%</b>
               </Typography>
               <Typography>
                 Rows: <b>{ingredients.length}</b>

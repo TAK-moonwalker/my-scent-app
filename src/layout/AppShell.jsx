@@ -7,6 +7,7 @@ import {
 } from '@mui/material';
 import HomeIcon from '@mui/icons-material/Home';
 import AddIcon from '@mui/icons-material/Add';
+import SearchIcon from '@mui/icons-material/Search';
 import LogoutIcon from '@mui/icons-material/Logout';
 
 function initials(name = '') {
@@ -97,6 +98,9 @@ export default function AppShell() {
           {/* Right side: Home / Add buttons */}
           {isAuthenticated && (
             <Stack direction="row" spacing={1}>
+              <IconButton color="inherit" onClick={() => nav('/search')}>
+                <SearchIcon />
+              </IconButton>
               <IconButton color="inherit" onClick={() => nav('/')}>
                 <HomeIcon />
               </IconButton>

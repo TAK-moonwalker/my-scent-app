@@ -2,7 +2,7 @@ import { useContext, useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { UserContext } from '../context/UserContextProvider';
 import { db } from '../firebase/firebase';
-import { doc, getDoc } from 'firebase/firestore';
+import { doc, getDoc, deleteDoc } from 'firebase/firestore';
 import ReactMarkdown from 'react-markdown';
 import {
   Box,
@@ -23,6 +23,7 @@ import {
   TextField
 } from '@mui/material';
 import EditIcon from '@mui/icons-material/Edit';
+import DeleteIcon from '@mui/icons-material/Delete';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 
 export default function RecipeView() {
@@ -34,6 +35,7 @@ export default function RecipeView() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [customVolume, setCustomVolume] = useState(null);
+  const [deleting, setDeleting] = useState(false);
 
   useEffect(() => {
     const loadRecipe = async () => {
@@ -55,6 +57,22 @@ export default function RecipeView() {
     };
     loadRecipe();
   }, [id]);
+
+  const handleDelete = async () => {
+    if (!window.confirm('Are you sure you want to delete this recipe? This cannot be undone.')) {
+      return;
+    }
+
+    setDeleting(true);
+    try {
+      await deleteDoc(doc(db, 'recipes', id));
+      nav('/', { replace: true });
+    } catch (err) {
+      console.error('Delete error:', err);
+      setError('Failed to delete recipe: ' + err.message);
+      setDeleting(false);
+    }
+  };
 
   if (loading) {
     return (
@@ -85,12 +103,28 @@ export default function RecipeView() {
 
   if (!recipe) return null;
 
+  // Check if user has access to view this recipe
+  const isOwner = user && user.uid === recipe.createdBy;
+  const canView = isOwner || recipe.isPublic;
+
+  if (!canView) {
+    return (
+      <Box p={3}>
+        <Alert severity="error" sx={{ mb: 2 }}>
+          You do not have access to this recipe.
+        </Alert>
+        <Button variant="outlined" onClick={() => nav('/')}>
+          Back to list
+        </Button>
+      </Box>
+    );
+  }
+
   const createdAt = recipe.createdAt?.toDate?.()
     ? recipe.createdAt.toDate().toLocaleString()
     : '—';
 
   const ingredients = recipe.ingredients || [];
-  const totalParts = ingredients.reduce((s, i) => s + (Number(i.parts) || 0), 0);
 
   return (
     <Box p={3}>
@@ -194,16 +228,13 @@ export default function RecipeView() {
                 </TableHead>
                 <TableBody>
                   {ingredients.map((i, idx) => {
-                    const pct = totalParts
-                      ? (i.parts / totalParts) * 100
-                      : 0;
                     const displayVolume = customVolume ?? recipe.totalVolume_ml;
-                    const ml = (displayVolume * pct) / 100 || 0;
+                    const ml = (displayVolume * (Number(i.percentage) || 0)) / 100 || 0;
                     return (
                       <TableRow key={i.id || idx}>
                         <TableCell>{idx + 1}</TableCell>
                         <TableCell>{i.materialName}</TableCell>
-                        <TableCell align="right">{pct.toFixed(2)}</TableCell>
+                        <TableCell align="right">{(Number(i.percentage) || 0).toFixed(2)}</TableCell>
                         <TableCell align="right">{ml.toFixed(2)}</TableCell>
                       </TableRow>
                     );
@@ -222,15 +253,26 @@ export default function RecipeView() {
             >
               Back
             </Button>
-            {user && user.uid === recipe.createdBy && (
-              <Button
-                startIcon={<EditIcon />}
-                variant="contained"
-                color="primary"
-                onClick={() => nav(`/r/${id}/edit`)}
-              >
-                Edit
-              </Button>
+            {isOwner && (
+              <>
+                <Button
+                  startIcon={<EditIcon />}
+                  variant="contained"
+                  color="primary"
+                  onClick={() => nav(`/r/${id}/edit`)}
+                >
+                  Edit
+                </Button>
+                <Button
+                  startIcon={<DeleteIcon />}
+                  variant="contained"
+                  color="error"
+                  disabled={deleting}
+                  onClick={handleDelete}
+                >
+                  {deleting ? 'Deleting...' : 'Delete'}
+                </Button>
+              </>
             )}
           </Box>
         </Grid>

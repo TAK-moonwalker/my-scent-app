@@ -12,12 +12,12 @@ service cloud.firestore {
       allow delete: if false;
     }
 
-    // Recipes: owner-only
+    // Recipes: owner-only, or public
     match /recipes/{recipeId} {
       // On create, payload MUST include createdBy == uid()
       allow create: if authed() && request.resource.data.createdBy == uid();
-      // For existing docs, only owner can read/update/delete
-      allow read: if authed() && resource.data.createdBy == uid();
+      // For existing docs: owner can always read/update/delete, or public recipes can be read by anyone
+      allow read: if authed() && (resource.data.createdBy == uid() || resource.data.isPublic == true);
       allow update, delete: if authed() && resource.data.createdBy == uid();
     }
 

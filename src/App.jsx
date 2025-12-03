@@ -15,6 +15,7 @@ import AddRecipe from './pages/AddRecipe';
 import RecipeEditor from './pages/RecipeEditor';
 import RecipeView from './pages/RecipeView';
 import ProfileEdit from './pages/ProfileEdit';
+import Search from './pages/Search';
 import AppShell from './layout/AppShell';
 
 // ---------- Protected Route ----------
@@ -62,6 +63,14 @@ function AppRoutes() {
       element={
         <ProtectedRoute>
           <RecipeList />
+        </ProtectedRoute>
+      }
+    />
+    <Route
+      path="/search"
+      element={
+        <ProtectedRoute>
+          <Search />
         </ProtectedRoute>
       }
     />
