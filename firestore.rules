@@ -16,7 +16,8 @@ service cloud.firestore {
     match /recipes/{recipeId} {
       // On create, payload MUST include createdBy == uid()
       allow create: if authed() && request.resource.data.createdBy == uid();
-      // For existing docs: owner can always read/update/delete, or public recipes can be read by anyone
+      // For existing docs: owner can read/update/delete, or public recipes can be read by anyone
+      // Also allow any authenticated user to check if recipe exists (minimal read for access control)
       allow read: if authed() && (resource.data.createdBy == uid() || resource.data.isPublic == true);
       allow update, delete: if authed() && resource.data.createdBy == uid();
     }

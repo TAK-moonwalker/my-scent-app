@@ -29,7 +29,7 @@ import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 export default function RecipeView() {
   const { id } = useParams();
   const nav = useNavigate();
-  const { user } = useContext(UserContext);
+  const { user, isAuthenticated } = useContext(UserContext);
 
   const [recipe, setRecipe] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -37,9 +37,22 @@ export default function RecipeView() {
   const [customVolume, setCustomVolume] = useState(null);
   const [deleting, setDeleting] = useState(false);
 
+  // Check authentication on component mount
+  useEffect(() => {
+    if (!isAuthenticated) {
+      setError('NOT_AUTHENTICATED');
+      setLoading(false);
+    }
+  }, [isAuthenticated]);
+
   useEffect(() => {
     const loadRecipe = async () => {
       try {
+        // Skip loading if not authenticated
+        if (!isAuthenticated) {
+          return;
+        }
+
         setError('');
         const snap = await getDoc(doc(db, 'recipes', id));
         if (!snap.exists()) {
@@ -50,13 +63,18 @@ export default function RecipeView() {
         setRecipe({ id: snap.id, ...snap.data() });
       } catch (err) {
         console.error(err);
-        setError(err.message);
+        // Check if it's a permission error (private recipe)
+        if (err.message && err.message.includes('permission')) {
+          setError('PRIVATE_RECIPE');
+        } else {
+          setError(err.message);
+        }
       } finally {
         setLoading(false);
       }
     };
     loadRecipe();
-  }, [id]);
+  }, [id, isAuthenticated]);
 
   const handleDelete = async () => {
     if (!window.confirm('Are you sure you want to delete this recipe? This cannot be undone.')) {
@@ -91,11 +109,23 @@ export default function RecipeView() {
   if (error) {
     return (
       <Box p={3}>
-        <Alert severity="error" sx={{ mb: 2 }}>
-          {error}
+        <Alert severity={error === 'PRIVATE_RECIPE' ? 'warning' : 'error'} sx={{ mb: 2 }}>
+          {error === 'PRIVATE_RECIPE' ? (
+            <>
+              🔒 <strong>This recipe is private</strong><br />
+              <span style={{ fontSize: '0.9em' }}>Only the owner can view this recipe.</span>
+            </>
+          ) : error === 'NOT_AUTHENTICATED' ? (
+            <>
+              🚫 <strong>Authentication Required</strong><br />
+              <span style={{ fontSize: '0.9em' }}>Please sign in to view recipes.</span>
+            </>
+          ) : (
+            error
+          )}
         </Alert>
         <Button variant="outlined" onClick={() => nav('/')}>
-          Back to list
+          {error === 'NOT_AUTHENTICATED' ? 'Back to Sign In' : 'Back to list'}
         </Button>
       </Box>
     );
@@ -110,8 +140,18 @@ export default function RecipeView() {
   if (!canView) {
     return (
       <Box p={3}>
-        <Alert severity="error" sx={{ mb: 2 }}>
-          You do not have access to this recipe.
+        <Alert severity="warning" sx={{ mb: 2 }}>
+          {recipe.isPublic === false ? (
+            <>
+              🔒 <strong>This recipe is private</strong><br />
+              <span style={{ fontSize: '0.9em' }}>Only the owner can view this recipe.</span>
+            </>
+          ) : (
+            <>
+              ⛔️ <strong>You do not have access to this recipe</strong><br />
+              <span style={{ fontSize: '0.9em' }}>This recipe may have been deleted or your access was revoked.</span>
+            </>
+          )}
         </Alert>
         <Button variant="outlined" onClick={() => nav('/')}>
           Back to list
@@ -156,6 +196,10 @@ export default function RecipeView() {
             <CardContent>
               <Typography variant="h4" gutterBottom>
                 {recipe.title}
+              </Typography>
+
+              <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 2 }}>
+                ID: <code>{id}</code>
               </Typography>
 
               <Stack direction="row" alignItems="center" spacing={1} mb={2}>
@@ -292,6 +336,9 @@ export default function RecipeView() {
               </Typography>
               <Typography>
                 Owner: <b>{recipe.createdByName}</b>
+              </Typography>
+              <Typography sx={{ mt: 2 }}>
+                Status: <b>{recipe.isPublic ? '🌐 Public' : '🔒 Private'}</b>
               </Typography>
             </CardContent>
           </Card>

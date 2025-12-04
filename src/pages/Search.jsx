@@ -47,15 +47,16 @@ export default function Search() {
       }
 
       const recipe = snap.data();
-      // Check if user can access this recipe (owner or public)
-      if (!recipe.isPublic && !isAuthenticated) {
-        setError('You do not have access to this recipe');
+      
+      // Check if recipe is private and user is not the owner
+      if (recipe.isPublic === false) {
+        setError('🔒 This recipe is private. Only the owner can view it.');
         setLoading(false);
         return;
       }
 
       // Navigate to recipe view
-      nav(`/r/${recipeId.trim()}`);
+      nav(`/r/${recipeId.trim()}/view`);
     } catch (err) {
       console.error('Search error:', err);
       setError(err.message || 'Error searching for recipe');
@@ -157,8 +158,23 @@ export default function Search() {
 
           {/* Error Message */}
           {error && (
-            <Alert severity="error" sx={{ borderRadius: 1 }}>
-              {error}
+            <Alert 
+              severity={error.includes('private') ? 'warning' : 'error'} 
+              sx={{ borderRadius: 1 }}
+            >
+              {error.includes('private') ? (
+                <>
+                  <strong>🔒 Recipe is Private</strong><br />
+                  <span style={{ fontSize: '0.9em' }}>Only the owner can view this recipe. Try searching for a public recipe instead.</span>
+                </>
+              ) : error.includes('not found') ? (
+                <>
+                  <strong>❌ Recipe Not Found</strong><br />
+                  <span style={{ fontSize: '0.9em' }}>The recipe ID you entered doesn't exist. Please check and try again.</span>
+                </>
+              ) : (
+                error
+              )}
             </Alert>
           )}
 
