@@ -12,6 +12,7 @@ import {
   CircularProgress, Alert, FormControlLabel, Checkbox
 } from '@mui/material';
 import DeleteIcon from '@mui/icons-material/Delete';
+import FileCopyIcon from '@mui/icons-material/FileCopy';
 
 function uuid() {
   return (crypto?.randomUUID?.() || Math.random().toString(36).slice(2) + Date.now().toString(36));
@@ -123,6 +124,37 @@ export default function RecipeEditor() {
     }
   };
 
+  const duplicate = async () => {
+    try {
+      if (!user) throw new Error('Please sign in.');
+
+      const newRecipeId = uuid();
+      const payload = {
+        title: (title.trim() || 'Untitled') + ' (Copy)',
+        totalVolume_ml: Number(totalVolume) || 0,
+        status: 'draft',
+        tags: tags.split(',').map((s) => s.trim()).filter(Boolean),
+        note: note.trim() || '',
+        coverUrl: coverUrl || '',
+        isPublic: false, // New duplicate is private by default
+        ingredients: ingredients.map((x) => ({
+          id: uuid(),
+          materialName: x.materialName || '',
+          percentage: Number(x.percentage) || 0,
+        })),
+        createdBy: user.uid,
+        createdByName: user.displayName || '',
+        createdAt: serverTimestamp(),
+        updatedAt: serverTimestamp(),
+      };
+
+      await setDoc(doc(db, 'recipes', newRecipeId), payload);
+      nav(`/r/${newRecipeId}/edit`, { replace: true });
+    } catch (e) {
+      setError(e.message || String(e));
+    }
+  };
+
   if (loadingUser || loading) {
     return (
       <Box p={3} minHeight="60dvh" display="grid" alignItems="center" justifyContent="center">
@@ -146,7 +178,12 @@ export default function RecipeEditor() {
         <Grid item xs={12} md={8}>
           <Card>
             <CardContent>
-              <Typography variant="h5" mb={2}>Edit recipe</Typography>
+              <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
+                <Typography variant="h5">Edit recipe</Typography>
+                <IconButton size="small" onClick={duplicate} title="Duplicate recipe">
+                  <FileCopyIcon />
+                </IconButton>
+              </Box>
 
               <TextField
                 fullWidth
@@ -307,7 +344,7 @@ export default function RecipeEditor() {
                 </TableBody>
               </Table>
 
-              <Box mt={2} display="flex" gap={1}>
+              <Box mt={2} display="flex" gap={1} flexWrap="wrap">
                 <Button onClick={addRow}>Add ingredient</Button>
                 <Button color="primary" onClick={save}>Save</Button>
                 <Button variant="outlined" onClick={() => nav(-1)}>Cancel</Button>
